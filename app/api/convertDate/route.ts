@@ -3,7 +3,10 @@ import axios from "axios";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const date = searchParams.get("date");
-
+  if (!date)
+    return new Response("Date is required", {
+      status: 400,
+    });
   try {
     const hebrewDate = await axios.get(
       `https://www.hebcal.com/converter?cfg=json&date=${date}&g2h=1&strict=1`

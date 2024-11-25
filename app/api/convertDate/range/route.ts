@@ -4,7 +4,11 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const startDate = searchParams.get("startDate");
   const toDate = searchParams.get("toDate");
-
+  if (!startDate || !toDate)
+    return new Response("Date is required", {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   try {
     const hebrewDate = await axios.get(
       `https://www.hebcal.com/converter?cfg=json&start=${startDate}&end=${toDate}&g2h=1`

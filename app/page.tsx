@@ -74,7 +74,9 @@ export default function Home() {
           setResponse(null);
           setResponseRange(res.data);
         })
-        .catch((err) => {});
+        .catch((err) => {
+          console.error(err);
+        });
     } else {
       axios
         .get(`http://localhost:3000/api/convertDate?date=${selectedDate}`)
@@ -82,7 +84,9 @@ export default function Home() {
           setResponseRange(null);
           setResponse(res.data);
         })
-        .catch((err) => {});
+        .catch((err) => {
+          console.error(err);
+        });
     }
   };
 
