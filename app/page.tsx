@@ -22,45 +22,104 @@ type ApiResponse = {
   heDateParts: HeDateParts;
   events: string[];
 };
+type Hdates = {
+  [key: string]: {
+    hy: number;
+    hm: string;
+    hd: number;
+    hebrew: string;
+    heDateParts: HeDateParts;
+    events: string[];
+  };
+};
 
+type HebrewDateRange = {
+  start: string;
+  end: string;
+  locale: string;
+  hdates: Hdates;
+};
 export default function Home() {
   const [isRange, setIsRange] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
   const [response, setResponse] = useState<ApiResponse | null>(null);
+  const [responseRange, setResponseRange] = useState<HebrewDateRange | null>(
+    null
+  );
+  const [error, setError] = useState<any>({});
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    axios
-      .get(`http://localhost:3000/api/convertDate?date=${selectedDate}`)
-      .then((res) => {
-        setResponse(res.data);
-        console.log(res.data);
-      })
-      .catch((err) => {
-        console.error("Error:", err);
+    if (!selectedDate) {
+      setError({
+        selectedDate: "Date cannot be empty",
       });
+      return;
+    }
+
+    setError({});
+    if (isRange) {
+      if (!toDate) {
+        setError({
+          toDate: "Date cannot be empty",
+        });
+        return;
+      }
+      axios
+        .get(
+          `http://localhost:3000/api/convertDate/range?startDate=${selectedDate}&toDate=${toDate}`
+        )
+        .then((res) => {
+          setResponse(null);
+          setResponseRange(res.data);
+        })
+        .catch((err) => {});
+    } else {
+      axios
+        .get(`http://localhost:3000/api/convertDate?date=${selectedDate}`)
+        .then((res) => {
+          setResponseRange(null);
+          setResponse(res.data);
+        })
+        .catch((err) => {});
+    }
   };
-  console.log(selectedDate);
 
   const handleClear = () => {
     setResponse(null);
+    setResponseRange(null);
     setSelectedDate("");
+    setToDate("");
+    setError({});
   };
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)] bg-gray-100 text-gray-800">
       <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start border border-b-4 border-gray-300 rounded-lg shadow-lg bg-white p-6 w-1/3">
         <div className="flex gap-4 p-4 bg-gray-200 rounded-lg shadow-md">
           <button
-            className="px-4 py-2 text-white bg-gray-500 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300"
+            className={`px-4 py-2 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-violet-300 ${
+              !isRange
+                ? "bg-violet-400 hover:bg-violet-600"
+                : "bg-slate-400 hover:bg-slate-600"
+            }`}
             onClick={() => {
               setIsRange(false);
+              handleClear();
             }}
           >
             Single
           </button>
           <button
-            className="px-4 py-2 text-white bg-gray-500 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-300"
-            onClick={() => setIsRange(true)}
+            className={`px-4 py-2 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-violet-300 ${
+              isRange
+                ? "bg-violet-400 hover:bg-violet-600"
+                : "bg-slate-400 hover:bg-slate-600"
+            }`}
+            onClick={() => {
+              setIsRange(true);
+              handleClear();
+            }}
           >
             Range
           </button>
@@ -83,6 +142,9 @@ export default function Home() {
             onChange={(e) => setSelectedDate(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-300"
           />
+          {error && (
+            <p className="text-sm text-red-500 mt-1">{error.selectedDate}</p>
+          )}
           {isRange && (
             <div>
               <label
@@ -92,10 +154,15 @@ export default function Home() {
                 Select end Date:
               </label>
               <input
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
                 id="date-input"
                 type="date"
                 className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-300"
               />
+              {error && (
+                <p className="text-sm text-red-500 mt-1">{error.toDate}</p>
+              )}
             </div>
           )}
 
@@ -111,63 +178,30 @@ export default function Home() {
           <div>
             <h3>Hebrew Date: {response.hebrew}</h3>
             <p>Events: {response.events.join(", ")}</p>
-            <button
-              onClick={handleClear}
-              className="mt-4 px-4 py-2 text-white bg-red-500 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
-            >
-              Clear
-            </button>
           </div>
         )}
-      </main>
+        {responseRange &&
+          responseRange.hdates &&
+          Object.entries(responseRange.hdates).map(([key, value]) => {
+            return (
+              <div key={key}>
+                <div>
+                  {key}: <h3>Hebrew Date: {value.hebrew}</h3>
+                  <p>Events: {value.events.join(", ")}</p>
+                </div>
+              </div>
+            );
+          })}
 
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center text-sm text-gray-700">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4 text-violet-500"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4 text-violet-500"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4 text-violet-500"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        {(response || responseRange) && (
+          <button
+            onClick={handleClear}
+            className="mt-4 px-4 py-2 text-white bg-red-500 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
+          >
+            Clear
+          </button>
+        )}
+      </main>
     </div>
   );
 }
